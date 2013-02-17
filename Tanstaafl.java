@@ -16,7 +16,7 @@ public class Tanstaafl extends AdvancedRobot
 	double FIELD_WIDTH = 0.0;
 	
 	//this will be our target
-	Enemy target;
+	Enemy target; 
 	//this will be our firepower at any given time
 	double firepower;
 	//for angles and shit
@@ -67,16 +67,23 @@ public class Tanstaafl extends AdvancedRobot
 	 * onScannedRobot: What to do when you see another robot
 	 */
 	public void onScannedRobot(ScannedRobotEvent e) {
+		double absoluteBearing = (getHeadingRadians() + e.getBearingRadians())%(2*PI);
+		
+		//identify if target is same or new one
+		if((e.getDistance() < target.distance) || (target.name == e.getName())){ //start on new target
+			target.name = e.getName();
+			target.bearing = e.getBearingRadians();
+			target.distance = e.getDistance();	
+			System.out.println("hihi");
+		}
+
 		//implement some sort of targeting method
-		double absoluteBearing = getHeadingRadians() + e.getBearingRadians();
 		setTurnGunRightRadians(normalRelativeAngle(absoluteBearing - getGunHeadingRadians()));
 
-		target.bearing = e.getBearingRadians();
-		target.distance = e.getDistance();
-		
+
 		if (getGunHeat() == 0 && Math.abs(getGunTurnRemaining()) < 10)
 			fire(firepower);
-	}
+		}
 	
 
 	/*
@@ -163,9 +170,8 @@ public class Tanstaafl extends AdvancedRobot
 
 	public void movement(){
 		//reverse direction every 20 ticks
-		if(getTime()%5==0){
+		if(getTime()%10==0){
 			direction*= -1;
-			setAhead(direction*300);
 		}
 
 /**		//too close to wall
@@ -182,6 +188,7 @@ public class Tanstaafl extends AdvancedRobot
 
 		}  */
 		//circle around our target
+		setAhead(direction*300);
 		setTurnRightRadians(target.bearing + (PI/2));
 		
 	}
@@ -197,9 +204,16 @@ class Enemy{
 	//use this to store information about our enemy
 	//kinda like copying snippetbot's idea, but it's a very good one!
 
-	String name;
 	public double distance;
 	public double bearing;
+	public String name;
+	public double Y;
+	public double X;
+	public double timespotted;
+	
+	public String getName(){
+		return name;
+	}
 	
 	public Move nextMove;
 	
