@@ -3,6 +3,7 @@ import robocode.*;
 import static robocode.util.Utils.normalRelativeAngleDegrees;
 import static robocode.util.Utils.normalRelativeAngle;
 import java.lang.Math;
+import java.util.Hashtable;
 //import java.awt.Color;
 
 // API help : http://robocode.sourceforge.net/docs/robocode/robocode/Robot.html
@@ -17,6 +18,8 @@ public class Tanstaafl extends AdvancedRobot
 	
 	//this will be our target
 	Enemy target; 
+	//a list of our targets
+	Hashtable targets = new Hashtable();
 	//this will be our firepower at any given time
 	double firepower;
 	//for angles and shit
@@ -67,19 +70,32 @@ public class Tanstaafl extends AdvancedRobot
 	 * onScannedRobot: What to do when you see another robot
 	 */
 	public void onScannedRobot(ScannedRobotEvent e) {
+		Enemy scannedEnemy;
+		if(targets.containsKey(e.getName())){
+			//already have a record of this target
+			scannedEnemy = targets.get(e.getName());
+		} else {
+			//know nothing about it yet
+			scannedEnemy = new Enemy();
+			targets.put(e.getName(), scannedEnemy);
+		}
+
+		//aboslute bearings to location of the guy
 		double absoluteBearing = (getHeadingRadians() + e.getBearingRadians())%(2*PI);
 		
-		//identify if target is same or new one
-		if((e.getDistance() < target.distance) || (target.name == e.getName())){ //start on new target
-			target.name = e.getName();
-			target.bearing = e.getBearingRadians();
-			target.distance = e.getDistance();	
-			System.out.println("hihi");
-		}
+		//fill out that enemy's instance variables
+		scannedEnemy.name = e.getName();
+		scannedEnemy.distance = e.getDistance();
+		scannedEnemy.heading = e.getHeading();
+		scannedEnemy.X = getX()+Math.sin(absoluteBearing)*e.getDistance();
+		scannedEnemy.Y = getY()+Math.cos(absoluteBearing)*e.getDistance();
+		scannedEnemy.timespotted = getTime(); //the last time we saw this guy
+
+		//optionally could include code here for selecting closest target
+		//but the contest is only 1v1...
 
 		//implement some sort of targeting method
 		setTurnGunRightRadians(normalRelativeAngle(absoluteBearing - getGunHeadingRadians()));
-
 
 		if (getGunHeat() == 0 && Math.abs(getGunTurnRemaining()) < 10)
 			fire(firepower);
@@ -158,6 +174,7 @@ public class Tanstaafl extends AdvancedRobot
 	 * onHitWall: What to do when you hit a wall
 	 */
 	public void onHitWall(HitWallEvent e) {
+		//get frustrated
 	}	
 
 	public void firepower(){
@@ -169,30 +186,62 @@ public class Tanstaafl extends AdvancedRobot
 	}
 
 	public void movement(){
-		//reverse direction every 20 ticks
-		if(getTime()%10==0){
-			direction*= -1;
-		}
+		//implement antigrav movement
+		//the force on us from each axis
+		double xforce = 0.0;
+		double yforce = 0.0;
+	
+		double force;
+		double ang;
+		GravPoint p;
+		Enemy currentEnemy; //always the first enemy since 1v1 only in the contest
+		//could implement iterator here to go through each element in the hashtable, but no need
+		currentEnemy = targets.get(target.getName());
+		p = new GravPoint(currentEnemy.X,currentEnemy.Y,-1000); //set anti gravity
+		ang = normalizeBearing(PI/2 - Math.atan2(getY() - p.y, getX() - p.x)); //generate the square triangle for this enemy to generate force vectors
+		//add these components tot he x and y forces acting on us
+		xforce += Math.sin(ang)*force;
+		yforce += Math.cos(ang)*force;
 
-/**		//too close to wall
-		double hypotenuse = 0.0;
-		double turnAmtDegrees = 0.0;
-		if(FIELD_WIDTH-getX() < 150 ){
-				turnRight(PI/2);
-		} else if (getX() < 150){
-				turnRight(PI/2);
-		}else if (FIELD_HEIGHT-getY() < 150){
-				turnRight(PI/2);
-		}else if (getY() < 150){
-				turnRight(PI/2);
+		//add force for the walls to dodge those assholes
+		xforce += 5000/Math.pow(distance(getX(),getY(),FIELD_WIDTH,getY()),3); //increase the force as I get farther from right wall
+		xforce -= 5000/Math.pow(distance(getX(),getY(),0,getY()),3); //decrease the force as I get close to left wall
+		yforce += 5000/Math.pow(distance(getX(),getY(),getX(),FIELD_HEIGHT),3); //increase the force as I get farther from top
+		yforce -= 5000/Math.pow(distance(getX(),getY(),getX(),0),3); //decrease the force as closer to top
 
-		}  */
-		//circle around our target
-		setAhead(direction*300);
-		setTurnRightRadians(target.bearing + (PI/2));
-		
+		//now must go towards where the force is pressing on me
+		goTo(getX()-xforce,getY()-yforce);
+
 	}
 	
+	public void goTo(double x, double y){
+		double distance = 20;
+		double angle = Math.toDegrees(absoluteBearing(getX(),getY(),x,y); //get angle to desired location
+		double radius = turnTo(angle);
+
+		setAhead(distance*radius);
+	}
+
+	public double turnTo(double angle){
+		
+	}
+
+	public double distance(double xa, double ya, double xb, double yb){
+		double x = xb - xa;
+		double y = yb - ya;
+		return Math.sqrt(x*x + y*y);
+	}
+
+	//return the shortest angle to turn--same point on unit circle, smaller angle
+	public double normalizeBearing(double ang){
+		if(ang < PI){
+			ang += 2*PI;
+		}
+		if(ang > PI) {
+			ang -= 2*PI;
+		}
+		return ang;
+	}
 	//return the hypotenuse of a right triange given the two sides
 	public double hyp(double a, double b){
 		return(Math.sqrt(Math.pow(a,2) + Math.pow(b,2)));
@@ -237,6 +286,16 @@ class Move{
 		y= 0.0;	
 	}
 	
+}
+
+//record the gravitational force of objects in the plane
+class GravPoint{
+	public double x,y,power;
+	public GravPoint(double pX, double pY, double pPower){
+		x = Px;
+		y = Py;
+		power = pPower;
+	}
 }
 									
 																
