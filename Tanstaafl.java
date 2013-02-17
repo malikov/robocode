@@ -163,53 +163,27 @@ public class Tanstaafl extends AdvancedRobot
 
 	public void movement(){
 		//reverse direction every 20 ticks
-		if(getTime()%20==0){
+		if(getTime()%5==0){
 			direction*= -1;
+			setAhead(direction*300);
 		}
 
-		//too close to wall
+/**		//too close to wall
 		double hypotenuse = 0.0;
 		double turnAmtDegrees = 0.0;
-		if(FIELD_WIDTH-getX() < 50 ){
-			if(getY() > FIELD_HEIGHT/2){
-				setTurnRight(PI/4);
-			} else {
-				setTurnLeft(PI/4);
-			}
-			setAhead(-1*direction*250);
-		} else if (getX() < 50){
-			if(getY() < FIELD_HEIGHT/2){
-				setTurnRight(PI/4);
-			} else {
-				turnLeft(PI/4);
-			}
-			setAhead(-1*direction*250);
-		}else if (FIELD_HEIGHT-getY() < 50){
-			if(getX() < FIELD_WIDTH/2){
-				setTurnRight(PI/4);
-			} else {
-				setTurnLeft(PI/4);
-			}	
-			setAhead(-1*direction*250);
-		}else if (getY() < 50){
-			if(getX() > FIELD_WIDTH/2){
-				setTurnRight(PI/4);
-			} else {
-				setTurnLeft(PI/4);
-			}
-			setAhead(-1*direction*250);
-/**	//go to centre of map
-			hypotenuse = hyp(Math.abs(getX()-FIELD_WIDTH/2),Math.abs(getY()-FIELD_HEIGHT/2));
-			turnAmtDegrees = Math.acos(getY()-FIELD_HEIGHT/2);
-			setTurnRight(turnAmtDegrees);
-			setAhead(hypotenuse);
+		if(FIELD_WIDTH-getX() < 150 ){
+				turnRight(PI/2);
+		} else if (getX() < 150){
+				turnRight(PI/2);
+		}else if (FIELD_HEIGHT-getY() < 150){
+				turnRight(PI/2);
+		}else if (getY() < 150){
+				turnRight(PI/2);
 
-*/			
-		} else {
-			setAhead(direction*250);
-			//circle around our target
-			setTurnRightRadians(target.bearing + (PI/2));
-		}
+		}  */
+		//circle around our target
+		setTurnRightRadians(target.bearing + (PI/2));
+		
 	}
 	
 	//return the hypotenuse of a right triange given the two sides
