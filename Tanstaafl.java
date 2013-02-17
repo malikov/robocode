@@ -27,6 +27,10 @@ public class Tanstaafl extends AdvancedRobot
 	//number of time I miss
 	int missCount = 0;
 	
+	//this is to help deal with ramming
+	int midpointcount;
+	double midpointstrength;
+
 	//gun aim
 	double gunAim;
 
@@ -46,8 +50,8 @@ public class Tanstaafl extends AdvancedRobot
 		setAdjustRadarForGunTurn(true);
 		// Robot main loop
 		while(true) {
-			movement();
 			scan();
+			movement();
 			firepower();
 			//fire(firepower);
 			execute();
@@ -63,6 +67,22 @@ public class Tanstaafl extends AdvancedRobot
 		}
 		
 	}
+
+	public void onHitRobot(HitRobotEvent e){
+		double b = e.getBearing();
+		if(b > 0 && b < 180){
+			turnRight(PI);
+		} else {
+			turnRight(-PI);
+		}
+		if(b > -90 && b <= 90){
+			setBack(100);
+		} else {
+			setAhead(100);
+		}
+	}
+
+
 	/**
 	 * onScannedRobot: What to do when you see another robot
 	 */
@@ -153,8 +173,6 @@ public class Tanstaafl extends AdvancedRobot
 	 * onHitByBullet: What to do when you're hit by a bullet
 	 */
 	public void onHitByBullet(HitByBulletEvent e) {
-		// Replace the next line with any behavior you would like
-
 	}
 	
 	/**
@@ -185,25 +203,40 @@ public class Tanstaafl extends AdvancedRobot
 		//could implement iterator here to go through each element in the hashtable, but no need
 		//but if we did, this would select the current enemy out of a hashtable or some such
 		currentEnemy = target; 
-		p = new GravPoint(currentEnemy.X,currentEnemy.Y,-2000); //set anti gravity
+		p = new GravPoint(currentEnemy.X,currentEnemy.Y,-1000); //set anti gravity
+		force= p.power/Math.pow(distance(getX(),getY(),p.x,p.y),2);
 		ang = normalizeBearing(PI/2 - Math.atan2(getY() - p.y, getX() - p.x)); //generate the square triangle for this enemy to generate force vectors
 		//add these components tot he x and y forces acting on us
 		xforce += Math.sin(ang)*force;
 		yforce += Math.cos(ang)*force;
 
+		//help with randomness
+		midpointcount++;
+		if(midpointcount > 5){
+			midpointcount = 0;
+			midpointstrength = (Math.random()*2000) -1000;
+		}
+		p = new GravPoint(getBattleFieldWidth()/2, getBattleFieldHeight()/2, midpointstrength);
+		force = p.power/Math.pow(distance(getX(),getY(),p.x,p.y),1.5);
+		ang = normalizeBearing(PI/2 - Math.atan2(getY() - p.y,getX() - p.x));
+		xforce += Math.sin(ang)*force;
+		yforce += Math.cos(ang)*force;
+
 		//add force for the walls to dodge those assholes
-		xforce += 5000/Math.pow(distance(getX(),getY(),FIELD_WIDTH,getY()),3); //increase the force as I get farther from right wall
-		xforce -= 5000/Math.pow(distance(getX(),getY(),0,getY()),3); //decrease the force as I get close to left wall
-		yforce += 5000/Math.pow(distance(getX(),getY(),getX(),FIELD_HEIGHT),3); //increase the force as I get farther from top
-		yforce -= 5000/Math.pow(distance(getX(),getY(),getX(),0),3); //decrease the force as closer to top
+		xforce += 5000/Math.pow(distance(getX(),getY(),getBattleFieldWidth(),getY()),2); //increase the force as I get farther from right wall
+		xforce -= 5000/Math.pow(distance(getX(),getY(),0,getY()),2); //decrease the force as I get close to left wall
+		yforce += 5000/Math.pow(distance(getX(),getY(),getX(),getBattleFieldHeight()),2); //increase the force as I get farther from top
+		yforce -= 5000/Math.pow(distance(getX(),getY(),getX(),0),2); //decrease the force as closer to top
 
 		//now must go towards where the force is pressing on me
 		goTo(getX()-xforce,getY()-yforce);
+		System.out.println(xforce);
+		System.out.println(yforce);
 
 	}
 	
 	public void goTo(double x, double y){
-		double distance = 200;
+		double distance = 50;//effectively the maximum to set movement
 		double angle = Math.toDegrees(absoluteBearing(getX(),getY(),x,y)); //get angle to desired location
 		double directionToMove  = turnTo(angle);
 
@@ -212,7 +245,7 @@ public class Tanstaafl extends AdvancedRobot
 
 	public double turnTo(double angle){
 		double ang;
-		double direction;
+		double direction = 1;
 		
 		ang = normalizeBearing(getHeading() - angle); //get the shortest angle
 		if(ang > 90){
@@ -220,7 +253,7 @@ public class Tanstaafl extends AdvancedRobot
 			direction = -1;
 		}
 		else if (ang < -90){
-			ang =+ 180;
+			ang += 180;
 			direction = -1;
 		}
 		else {
@@ -239,7 +272,7 @@ public class Tanstaafl extends AdvancedRobot
 
 	//return the shortest angle to turn--same point on unit circle, smaller angle
 	public double normalizeBearing(double ang){
-		if(ang < PI){
+		if(ang < -PI){
 			ang += 2*PI;
 		}
 		if(ang > PI) {
@@ -261,16 +294,16 @@ public class Tanstaafl extends AdvancedRobot
 		//get distance between two poitns for our bearing
 		double hypotenuse = distance(xa,xb,ya,yb);
 
-		if(x > 0 && y > 0){ // first quadrant
+		if(x >= 0 && y >= 0){ // first quadrant
 			return Math.asin(x/hypotenuse);
 		}
-		if(x > 0 && y < 0){ //second quadrant by bearings (4th quadrant by reasonable math)
+		if(x >= 0 && y < 0){ //second quadrant by bearings (4th quadrant by reasonable math)
 			return PI-Math.asin(x/hypotenuse);
 		}
 		if(x < 0 && y < 0){ //third quadrant by bearings
 			return PI+Math.asin(-x/hypotenuse);
 		}
-		if(x <0 && y > 0){ //fourth and final stupid quadrant
+		if(x <0 && y >=0){ //fourth and final stupid quadrant
 			return 2*PI-Math.asin(-x/hypotenuse);
 		}
 		return 0; //we're on top of the target in some dimension; no need to turn
