@@ -6,7 +6,7 @@ import static robocode.util.Utils.normalRelativeAngleDegrees;
 // API help : http://robocode.sourceforge.net/docs/robocode/robocode/Robot.html
 
 /**
- * Tanstaafl - a robot by (your name here)
+ * Tanstaafl - a robot by  Team Alice
  */
 public class Tanstaafl extends Robot
 {
