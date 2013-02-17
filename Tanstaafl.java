@@ -12,21 +12,23 @@ import java.lang.Math;
  */
 public class Tanstaafl extends AdvancedRobot
 {
-
 	double FIELD_HEIGHT = 0.0;
 	double FIELD_WIDTH = 0.0;
-
+	
 	//this will be our target
 	Enemy target;
-
 	//this will be our firepower at any given time
 	double firepower;
-
 	//for angles and shit
 	double PI = Math.PI;
-
 	//current relative direction
 	int direction = 1;
+	
+	//number of time I miss
+	int missCount = 0;
+	
+	//gun aim
+	double gunAim;
 
 	/**
 	 * run: Tanstaafl's default behavior
@@ -35,11 +37,10 @@ public class Tanstaafl extends AdvancedRobot
 		
 		// Initialization of the robot should be put here
 		target = new Enemy();
-		target.distance = 12398713;
-
+		
 		FIELD_HEIGHT = getBattleFieldHeight();
 		FIELD_WIDTH = getBattleFieldWidth();
-
+		
 		//independent pieces of robot
 		setAdjustGunForRobotTurn(true);
 		setAdjustRadarForGunTurn(true);
@@ -48,11 +49,20 @@ public class Tanstaafl extends AdvancedRobot
 			movement();
 			scan();
 			firepower();
-			fire(firepower);
+			//fire(firepower);
 			execute();
 		}
 	}
+	
 
+	public void setGunTurn(String direction, double degrees){
+		if(direction.equalsIgnoreCase("R")){
+			turnGunRight(degrees);
+		}else{
+			turnGunLeft(degrees);
+		}
+		
+	}
 	/**
 	 * onScannedRobot: What to do when you see another robot
 	 */
@@ -63,6 +73,70 @@ public class Tanstaafl extends AdvancedRobot
 
 		target.bearing = e.getBearingRadians();
 		target.distance = e.getDistance();
+		
+		if (getGunHeat() == 0 && Math.abs(getGunTurnRemaining()) < 10)
+			fire(firepower);
+	}
+	
+
+	/*
+		my bullet hit another robot
+	*/
+	public void onBulletHit(BulletHitEvent event){
+		/*
+			As long as I'm not hit I'll keep on shooting, if hit move and shoot otherwise stay steady
+		*/		
+		out.println(event.getName());
+		
+		Bullet bulletHit = event.getBullet();
+		String rName = event.getName();
+		
+	}
+		
+
+	/*
+		when my bullet hits another bullet
+	*/
+	public void onBulletHitBullet(BulletHitBulletEvent event){
+		/*
+			Then I could be right in front of the person, or in crossfire with someone elese check my position
+		*/
+		
+	}
+	
+	/*
+		Missing opponent need to recalibrate aim
+	*/
+	public void onBulletMissed(BulletMissedEvent event) {
+		
+		Bullet bullet = event.getBullet();
+		
+		/*
+			readjust current heading either by scanning left or right
+			
+		*/
+		double currentHeading = getGunHeadingRadians();
+		double bulletHead = bullet.getHeading();
+		
+		double newHeading = getHeading() - getGunHeading() + bullet.getHeadingRadians();
+		String direction = "R";
+		
+		this.setGunTurn(direction,newHeading);
+		
+		
+		/*
+		double bulletHeadRadians = bullet.getHeadingRadians();
+		double bulletPower = bullet.getPower();
+		double bulletVel = bullet.getVelocity();
+		boolean isActive = bullet.isActive();
+		
+		double bulletX = bullet.getX();
+		double bulletY = bullet.getY();
+		*/
+		
+		/*
+			by default turn right then keep turning right, if found a hit then stop until I miss again.
+		*/
 	}
 
 	/**
@@ -88,69 +162,56 @@ public class Tanstaafl extends AdvancedRobot
 	}
 
 	public void movement(){
+		//reverse direction every 20 ticks
+		if(getTime()%20==0){
+			direction*= -1;
+		}
 
-		
 		//too close to wall
 		double hypotenuse = 0.0;
 		double turnAmtDegrees = 0.0;
-		if(hyp(getX(),getY()) < (hyp(50,50)+25)){
-			setTurnRight(PI);
-			setAhead(150);
-		} else if(hyp(getX(),(FIELD_HEIGHT-getY())) < (hyp(50,50)+25)){
-			setTurnRight(PI);
-			setAhead(150);
-		} else if(hyp((FIELD_WIDTH-getX()),(FIELD_HEIGHT-getY())) < (hyp(50,50)+25)){
-			setTurnRight(PI);
-			setAhead(150);
-		} else if(hyp((FIELD_WIDTH-getX()),getY()) < (hyp(50,50)+25)){
-			setTurnRight(PI);
-			setAhead(150); 
-		} else if(FIELD_WIDTH-getX() < 50 ){
+		if(FIELD_WIDTH-getX() < 50 ){
 			if(getY() > FIELD_HEIGHT/2){
-				setTurnRight(PI/2);
+				setTurnRight(PI/4);
 			} else {
-				setTurnLeft(PI/2);
+				setTurnLeft(PI/4);
 			}
-			setAhead(-1*direction*150);
-			System.out.println("a");
-			System.out.println(direction);
+			setAhead(-1*direction*250);
 		} else if (getX() < 50){
 			if(getY() < FIELD_HEIGHT/2){
-				setTurnRight(PI/2);
+				setTurnRight(PI/4);
 			} else {
-				setTurnLeft(PI/2);
+				turnLeft(PI/4);
 			}
-			setAhead(-1*direction*150);
-			System.out.println("b");
-			System.out.println(direction);
+			setAhead(-1*direction*250);
 		}else if (FIELD_HEIGHT-getY() < 50){
 			if(getX() < FIELD_WIDTH/2){
-				setTurnRight(PI/2);
+				setTurnRight(PI/4);
 			} else {
-				setTurnLeft(PI/2);
+				setTurnLeft(PI/4);
 			}	
-			setAhead(-1*direction*150);
-			System.out.println("c");
-			System.out.println(direction);
+			setAhead(-1*direction*250);
 		}else if (getY() < 50){
 			if(getX() > FIELD_WIDTH/2){
-				setTurnRight(PI/2);
+				setTurnRight(PI/4);
 			} else {
-				setTurnLeft(PI/2);
+				setTurnLeft(PI/4);
 			}
-			setAhead(-1*direction*150);
-			System.out.println("d");
-			System.out.println(direction);
+			setAhead(-1*direction*250);
+/**	//go to centre of map
+			hypotenuse = hyp(Math.abs(getX()-FIELD_WIDTH/2),Math.abs(getY()-FIELD_HEIGHT/2));
+			turnAmtDegrees = Math.acos(getY()-FIELD_HEIGHT/2);
+			setTurnRight(turnAmtDegrees);
+			setAhead(hypotenuse);
+
+*/			
 		} else {
-			//reverse direction every 20 ticks
-			if(getTime()%20==0){
-				direction*= -1;
-			}setAhead(direction*250);
+			setAhead(direction*250);
 			//circle around our target
 			setTurnRightRadians(target.bearing + (PI/2));
 		}
 	}
-
+	
 	//return the hypotenuse of a right triange given the two sides
 	public double hyp(double a, double b){
 		return(Math.sqrt(Math.pow(a,2) + Math.pow(b,2)));
@@ -165,5 +226,29 @@ class Enemy{
 	String name;
 	public double distance;
 	public double bearing;
+	
+	public Move nextMove;
+	
+	public Enemy(){
+		distance = 12398713;		
+		bearing = 0.0;
+		nextMove = new Move();
+	}
+	
+	public Move getNextMove(){
+		return this.nextMove;
+	}
+}
+
+class Move{
+	public double x;
+	public double y;
+	
+	public Move(){
+		x= 0.0;
+		y= 0.0;	
+	}
+	
 }
 									
+																
