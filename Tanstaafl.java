@@ -77,11 +77,6 @@ public class Tanstaafl extends AdvancedRobot
 	 * onHitWall: What to do when you hit a wall
 	 */
 	public void onHitWall(HitWallEvent e) {
-		if(e.getBearing() > -90 && e.getBearing() <= 90) {
-			back(40);
-		} else {
-			ahead(40);
-		}
 	}	
 
 	public void firepower(){
@@ -93,51 +88,64 @@ public class Tanstaafl extends AdvancedRobot
 	}
 
 	public void movement(){
-		//reverse direction every 20 ticks
-		if(getTime()%20==0){
-			direction*= -1;
-		}
+
 		
 		//too close to wall
 		double hypotenuse = 0.0;
 		double turnAmtDegrees = 0.0;
-		if(FIELD_WIDTH-getX() < 50 ){
+		if(hyp(getX(),getY()) < (hyp(50,50)+25)){
+			setTurnRight(PI);
+			setAhead(150);
+		} else if(hyp(getX(),(FIELD_HEIGHT-getY())) < (hyp(50,50)+25)){
+			setTurnRight(PI);
+			setAhead(150);
+		} else if(hyp((FIELD_WIDTH-getX()),(FIELD_HEIGHT-getY())) < (hyp(50,50)+25)){
+			setTurnRight(PI);
+			setAhead(150);
+		} else if(hyp((FIELD_WIDTH-getX()),getY()) < (hyp(50,50)+25)){
+			setTurnRight(PI);
+			setAhead(150); 
+		} else if(FIELD_WIDTH-getX() < 50 ){
 			if(getY() > FIELD_HEIGHT/2){
-				setTurnRight(PI/4);
+				setTurnRight(PI/2);
 			} else {
-				setTurnLeft(PI/4);
+				setTurnLeft(PI/2);
 			}
-			setAhead(-1*direction*250);
+			setAhead(-1*direction*150);
+			System.out.println("a");
+			System.out.println(direction);
 		} else if (getX() < 50){
 			if(getY() < FIELD_HEIGHT/2){
-				setTurnRight(PI/4);
+				setTurnRight(PI/2);
 			} else {
-				turnLeft(PI/4);
+				setTurnLeft(PI/2);
 			}
-			setAhead(-1*direction*250);
+			setAhead(-1*direction*150);
+			System.out.println("b");
+			System.out.println(direction);
 		}else if (FIELD_HEIGHT-getY() < 50){
 			if(getX() < FIELD_WIDTH/2){
-				setTurnRight(PI/4);
+				setTurnRight(PI/2);
 			} else {
-				setTurnLeft(PI/4);
+				setTurnLeft(PI/2);
 			}	
-			setAhead(-1*direction*250);
+			setAhead(-1*direction*150);
+			System.out.println("c");
+			System.out.println(direction);
 		}else if (getY() < 50){
 			if(getX() > FIELD_WIDTH/2){
-				setTurnRight(PI/4);
+				setTurnRight(PI/2);
 			} else {
-				setTurnLeft(PI/4);
+				setTurnLeft(PI/2);
 			}
-			setAhead(-1*direction*250);
-/**	//go to centre of map
-			hypotenuse = hyp(Math.abs(getX()-FIELD_WIDTH/2),Math.abs(getY()-FIELD_HEIGHT/2));
-			turnAmtDegrees = Math.acos(getY()-FIELD_HEIGHT/2);
-			setTurnRight(turnAmtDegrees);
-			setAhead(hypotenuse);
-
-*/			
+			setAhead(-1*direction*150);
+			System.out.println("d");
+			System.out.println(direction);
 		} else {
-			setAhead(direction*250);
+			//reverse direction every 20 ticks
+			if(getTime()%20==0){
+				direction*= -1;
+			}setAhead(direction*250);
 			//circle around our target
 			setTurnRightRadians(target.bearing + (PI/2));
 		}
