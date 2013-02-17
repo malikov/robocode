@@ -20,7 +20,7 @@ public class Tanstaafl extends AdvancedRobot
 	//for angles and shit
 	double PI = Math.PI;
 	//current relative direction
-	int direction;
+	int direction = 1;
 
 	/**
 	 * run: Tanstaafl's default behavior
@@ -36,10 +36,10 @@ public class Tanstaafl extends AdvancedRobot
 		setAdjustRadarForGunTurn(true);
 		// Robot main loop
 		while(true) {
+			movement();
 			scan();
 			firepower();
 			fire(firepower);
-			movement();
 			execute();
 		}
 	}
@@ -48,18 +48,12 @@ public class Tanstaafl extends AdvancedRobot
 	 * onScannedRobot: What to do when you see another robot
 	 */
 	public void onScannedRobot(ScannedRobotEvent e) {
-		//turn perpindicular to the enemy
-		//this turns relative to the scanned enemy, not THE enemy
-		//consider whether we want this to be for the target instead
-		double turnAmt = 0.0;
-
-		turnAmt = normalRelativeAngleDegrees(90 - (getHeading() - e.getHeading()));
-		turnRight(turnAmt);
 		//implement some sort of targeting method
 		double absoluteBearing = getHeadingRadians() + e.getBearingRadians();
 		setTurnGunRightRadians(normalRelativeAngle(absoluteBearing - getGunHeadingRadians()));
 
 		target.bearing = e.getBearingRadians();
+		target.distance = e.getDistance();
 	}
 
 	/**
@@ -67,7 +61,6 @@ public class Tanstaafl extends AdvancedRobot
 	 */
 	public void onHitByBullet(HitByBulletEvent e) {
 		// Replace the next line with any behavior you would like
-		// move forward or backwards
 
 	}
 	
@@ -91,12 +84,11 @@ public class Tanstaafl extends AdvancedRobot
 	}
 
 	public void movement(){
-
 		//reverse direction every 20 ticks
-	//	if(getTime()%20==0){
-	//		direction*= -1;
-			setAhead(250);
-	//	}
+		if(getTime()%20==0){
+			direction*= -1;
+		}
+		setAhead(direction*250);
 		//circle around our target
 		setTurnRightRadians(target.bearing + (PI/2));
 	}
