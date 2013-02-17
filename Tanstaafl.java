@@ -3,7 +3,6 @@ import robocode.*;
 import static robocode.util.Utils.normalRelativeAngleDegrees;
 import static robocode.util.Utils.normalRelativeAngle;
 import java.lang.Math;
-import java.util.Hashtable;
 //import java.awt.Color;
 
 // API help : http://robocode.sourceforge.net/docs/robocode/robocode/Robot.html
@@ -18,8 +17,6 @@ public class Tanstaafl extends AdvancedRobot
 	
 	//this will be our target
 	Enemy target; 
-	//a list of our targets
-	Hashtable targets = new Hashtable();
 	//this will be our firepower at any given time
 	double firepower;
 	//for angles and shit
@@ -70,26 +67,16 @@ public class Tanstaafl extends AdvancedRobot
 	 * onScannedRobot: What to do when you see another robot
 	 */
 	public void onScannedRobot(ScannedRobotEvent e) {
-		Enemy scannedEnemy;
-		if(targets.containsKey(e.getName())){
-			//already have a record of this target
-			scannedEnemy = targets.get(e.getName());
-		} else {
-			//know nothing about it yet
-			scannedEnemy = new Enemy();
-			targets.put(e.getName(), scannedEnemy);
-		}
-
 		//aboslute bearings to location of the guy
 		double absoluteBearing = (getHeadingRadians() + e.getBearingRadians())%(2*PI);
 		
 		//fill out that enemy's instance variables
-		scannedEnemy.name = e.getName();
-		scannedEnemy.distance = e.getDistance();
-		scannedEnemy.heading = e.getHeading();
-		scannedEnemy.X = getX()+Math.sin(absoluteBearing)*e.getDistance();
-		scannedEnemy.Y = getY()+Math.cos(absoluteBearing)*e.getDistance();
-		scannedEnemy.timespotted = getTime(); //the last time we saw this guy
+		target.name = e.getName();
+		target.distance = e.getDistance();
+		target.heading = e.getHeading();
+		target.X = getX()+Math.sin(absoluteBearing)*e.getDistance();
+		target.Y = getY()+Math.cos(absoluteBearing)*e.getDistance();
+		target.timespotted = getTime(); //the last time we saw this guy
 
 		//optionally could include code here for selecting closest target
 		//but the contest is only 1v1...
@@ -191,13 +178,14 @@ public class Tanstaafl extends AdvancedRobot
 		double xforce = 0.0;
 		double yforce = 0.0;
 	
-		double force;
+		double force = 1.0;
 		double ang;
 		GravPoint p;
 		Enemy currentEnemy; //always the first enemy since 1v1 only in the contest
 		//could implement iterator here to go through each element in the hashtable, but no need
-		currentEnemy = targets.get(target.getName());
-		p = new GravPoint(currentEnemy.X,currentEnemy.Y,-1000); //set anti gravity
+		//but if we did, this would select the current enemy out of a hashtable or some such
+		currentEnemy = target; 
+		p = new GravPoint(currentEnemy.X,currentEnemy.Y,-2000); //set anti gravity
 		ang = normalizeBearing(PI/2 - Math.atan2(getY() - p.y, getX() - p.x)); //generate the square triangle for this enemy to generate force vectors
 		//add these components tot he x and y forces acting on us
 		xforce += Math.sin(ang)*force;
@@ -215,15 +203,32 @@ public class Tanstaafl extends AdvancedRobot
 	}
 	
 	public void goTo(double x, double y){
-		double distance = 20;
-		double angle = Math.toDegrees(absoluteBearing(getX(),getY(),x,y); //get angle to desired location
-		double radius = turnTo(angle);
+		double distance = 200;
+		double angle = Math.toDegrees(absoluteBearing(getX(),getY(),x,y)); //get angle to desired location
+		double directionToMove  = turnTo(angle);
 
-		setAhead(distance*radius);
+		setAhead(distance*directionToMove);
 	}
 
 	public double turnTo(double angle){
+		double ang;
+		double direction;
 		
+		ang = normalizeBearing(getHeading() - angle); //get the shortest angle
+		if(ang > 90){
+			ang -= 180;
+			direction = -1;
+		}
+		else if (ang < -90){
+			ang =+ 180;
+			direction = -1;
+		}
+		else {
+			direction = 1;
+		}
+
+		setTurnLeft(ang); //note that turning left by negative angle is turning right!!
+		return direction;
 	}
 
 	public double distance(double xa, double ya, double xb, double yb){
@@ -247,6 +252,30 @@ public class Tanstaafl extends AdvancedRobot
 		return(Math.sqrt(Math.pow(a,2) + Math.pow(b,2)));
 	}
 
+	//return the absolute bearing between any two points
+	//note that bearing is stupid and north is 0 degrees and it moves clockwise rather than counterclockwise
+	public double absoluteBearing(double xa, double ya, double xb, double yb){
+		double x = xb-xa;
+		double y = yb-ya;
+
+		//get distance between two poitns for our bearing
+		double hypotenuse = distance(xa,xb,ya,yb);
+
+		if(x > 0 && y > 0){ // first quadrant
+			return Math.asin(x/hypotenuse);
+		}
+		if(x > 0 && y < 0){ //second quadrant by bearings (4th quadrant by reasonable math)
+			return PI-Math.asin(x/hypotenuse);
+		}
+		if(x < 0 && y < 0){ //third quadrant by bearings
+			return PI+Math.asin(-x/hypotenuse);
+		}
+		if(x <0 && y > 0){ //fourth and final stupid quadrant
+			return 2*PI-Math.asin(-x/hypotenuse);
+		}
+		return 0; //we're on top of the target in some dimension; no need to turn
+	}
+
 }
 								
 class Enemy{
@@ -259,6 +288,7 @@ class Enemy{
 	public double Y;
 	public double X;
 	public double timespotted;
+	public double heading;
 	
 	public String getName(){
 		return name;
@@ -292,8 +322,8 @@ class Move{
 class GravPoint{
 	public double x,y,power;
 	public GravPoint(double pX, double pY, double pPower){
-		x = Px;
-		y = Py;
+		x = pX;
+		y = pY;
 		power = pPower;
 	}
 }
